@@ -1,0 +1,34 @@
+[
+    {
+        "id": "FB-1001",
+        "source": "App Store Review",
+        "timestamp": "2026-06-18T14:32:00Z",
+        "type": "User Feedback",
+        "severity": "Low",
+        "raw_text": "The app is okay, but I wish there was a dark mode for the analytics dashboard. My eyes hurt reading these charts at night."
+    },
+    {
+        "id": "CR-2049",
+        "source": "AWS CloudWatch Logs",
+        "timestamp": "2026-06-19T09:15:22Z",
+        "type": "Crash Log",
+        "severity": "Critical",
+        "raw_text": "Exception: NullReferenceError in PaymentProcessingService. User id=9942 attempted to check out but stripe_session_token was null. StackTrace: at api.v1.checkout(line 42)."
+    },
+    {
+        "id": "FB-1002",
+        "source": "Zendesk Ticket",
+        "timestamp": "2026-06-20T10:05:00Z",
+        "type": "Bug Report",
+        "severity": "High",
+        "raw_text": "Hey, every time I try to update my profile picture, the app freezes and I have to force close it. I'm using the latest iOS version. My email is user@example.com."
+    },
+    {
+        "id": "CR-2050",
+        "source": "Sentry Error Tracker",
+        "timestamp": "2026-06-20T11:45:10Z",
+        "type": "Timeout Error",
+        "severity": "Medium",
+        "raw_text": "Gateway Timeout 504 on endpoint /api/v2/inventory/sync. Database query took longer than 15000ms. Consider adding database indexing to the product_id column."
+    }
+]

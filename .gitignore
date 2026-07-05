@@ -1,0 +1,29 @@
+.env
+venv/
+vertex-key.json
+frontend/node_modules
+backend/venv
+backend/api/
+# Security
+.env
+
+# Python Environments & Cache
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Node/React Dependencies
+frontend/node_modules/
+frontend/dist/
+
+# Vector Databases
+faiss_index/
+chroma_db/
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+backend/list_models.py
+backend/test_connection.py
+node_modules/

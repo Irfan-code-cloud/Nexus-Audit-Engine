@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  /* 1. Deep Charcoal Backgrounds (Zinc Palette) */
+  --color-bat-900: #09090b;
+  /* zinc-950: Soft off-black for the main background */
+  --color-bat-800: #18181b;
+  /* zinc-900: Slightly lighter charcoal for cards */
+  --color-bat-700: #27272a;
+  /* zinc-800: Subtle gray for borders and dividers */
+
+  /* 2. Muted Enterprise Accents */
+  --color-neon-teal: #059669;
+  /* emerald-600: Professional, muted success/primary color */
+  --color-neon-red: #e11d48;
+  /* rose-600: Serious, sophisticated critical alert red */
+  --color-neon-yellow: #d97706;
+  /* amber-600: Grounded warning color */
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+body {
+  background-color: var(--color-bat-900);
+  /* Use a softer gray for the main text instead of bright white/light gray */
+  color: #a1a1aa;
+  /* zinc-400 */
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
