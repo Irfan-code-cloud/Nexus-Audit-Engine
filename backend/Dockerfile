@@ -1,21 +1,26 @@
-# Use an official lightweight Python image
-FROM python:3.12-slim
+# Use explicit 3.11 image
+FROM python:3.11-slim
 
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies required for FAISS and network mapping
+# Force a cache bust by adding a dummy build argument
+ARG CACHEBUST=1
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y build-essential curl && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Copy requirements
 COPY requirements.txt .
+
+# Upgrade pip FIRST to ensure it can read modern version requirements
+RUN pip install --upgrade pip
+
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the backend code
+# Copy backend code
 COPY . .
 
-# Expose the port Cloud Run expects
 EXPOSE 8000
-
-# Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
