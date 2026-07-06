@@ -14,6 +14,27 @@ PEM_FILE_PATH = os.path.abspath(
 )
 
 
+def get_signing_key():
+    """
+    Fetches the signing key. Checks the environment variable first (Google Cloud),
+    then falls back to reading the local .pem file (Local machine).
+    """
+    # 1. Try to load from Google Cloud Environment Variable
+    env_key = os.getenv("GITHUB_PRIVATE_KEY")
+    if env_key:
+        # Reformat literal '\n' characters back into true structural line breaks if escaped
+        return env_key.replace("\\n", "\n").encode("utf-8")
+
+    # 2. Fallback to Local machine file system
+    if os.path.exists(PEM_FILE_PATH):
+        with open(PEM_FILE_PATH, "rb") as pem_file:
+            return pem_file.read()
+
+    raise ValueError(
+        "CRITICAL: GITHUB_PRIVATE_KEY environment variable or local .pem file is missing."
+    )
+
+
 def get_dynamic_github_token(repo_path: str):
     """
     Generates a JWT to authenticate as the App, then exchanges it for a
@@ -21,12 +42,14 @@ def get_dynamic_github_token(repo_path: str):
     """
     print(f"🔐 Negotiating bank-grade security token for {repo_path}...")
 
-    if not GITHUB_APP_ID or not os.path.exists(PEM_FILE_PATH):
-        raise ValueError("Missing GITHUB_APP_ID or .pem file. Check your vault.")
+    if not GITHUB_APP_ID:
+        raise ValueError("Missing GITHUB_APP_ID. Check your vault.")
 
-    # 1. Sign the JSON Web Token (JWT)
-    with open(PEM_FILE_PATH, "rb") as pem_file:
-        signing_key = pem_file.read()
+    # Dynamically resolve the key based on environment context
+    try:
+        signing_key = get_signing_key()
+    except ValueError as e:
+        raise ValueError(str(e))
 
     # SYSTEM CLOCK SKEW FIX: Subtract 60 seconds from the 'iat' (issued at) time
     # This prevents GitHub from dropping the connection if your local clock is slightly fast.
