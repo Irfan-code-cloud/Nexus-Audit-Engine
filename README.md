@@ -112,13 +112,8 @@ Nexus-Audit-Engine/
     ├── auth_engine.py
     ├── requirements.txt
     └── agents/
-        ├── architect_agent.py
         ├── dependency_mapper.py
-        ├── instructions.py
         ├── pr_agent.py
-        ├── sanity_check.py
-        ├── sentiment_agent.py
-        ├── validation_agent.py
         └── vector_brain.py
 ```
 
@@ -181,6 +176,7 @@ GITHUB_APP_ID="your_github_app_id"
 GITHUB_TOKEN="your_personal_access_token_fallback"
 GEMINI_API_KEY="your_google_gemini_api_key"
 GROQ_API_KEY="your_groq_api_key"
+GITHUB_WEBHOOK_SECRET="your_webhook_secret"
 ```
 ### Add the GitHub Private Key:
 
