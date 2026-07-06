@@ -11,8 +11,7 @@ RUN apt-get update && apt-get install -y build-essential curl && rm -rf /var/lib
 RUN pip install --upgrade pip
 
 # Copy requirements
-COPY requirements.txt .
-
+COPY requirements_linux.txt requirements.txt
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
