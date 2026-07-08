@@ -22,6 +22,7 @@ function App() {
   const [repoHistory, setRepoHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
   const [isAuditLedgerOpen, setIsAuditLedgerOpen] = useState(false)
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   // 1. On initial page load, check if we have saved data in localStorage
   useEffect(() => {
@@ -65,7 +66,7 @@ function App() {
 
     try {
       // 1. Send the initial connect request to trigger the background worker
-      await fetch('http://127.0.0.1:8000/api/v1/connect', {
+      await fetch(`${API_BASE_URL}/api/v1/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_url: repoUrl })
@@ -74,7 +75,7 @@ function App() {
       // 2. Start the Radar Loop (Polling)
       const pollInterval = setInterval(async () => {
         try {
-          const statusRes = await fetch('http://127.0.0.1:8000/api/v1/status');
+          const statusRes = await fetch(`${API_BASE_URL}/api/v1/status`);
           const statusData = await statusRes.json();
 
           // 3. Check if the lock is released!
@@ -122,7 +123,7 @@ function App() {
     // Start the Radar Loop to track the AI Agents
     const auditInterval = setInterval(async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/v1/status');
+        const res = await fetch(`${API_BASE_URL}/api/v1/status`);
         const data = await res.json();
         // Update the UI if the backend has moved to a new step
         if (data.audit_step > 0) {
@@ -134,7 +135,7 @@ function App() {
     }, 1000); // Ping every 1 second for fast UI updates
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/audit', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/audit`, {
         method: 'POST'
       })
 
@@ -161,7 +162,7 @@ function App() {
     setValidationReport(null)
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/push', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/push`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // UPDATED: Now we send both the AI contracts AND the dynamic repo URL

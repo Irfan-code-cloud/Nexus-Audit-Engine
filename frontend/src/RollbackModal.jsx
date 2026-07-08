@@ -8,11 +8,12 @@ export default function RollbackModal({ currentRepo }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isDeploying, setIsDeploying] = useState(false);
     const [isDiscarding, setIsDiscarding] = useState(false);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
     useEffect(() => {
         const checkVault = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/v1/latest_blueprint');
+                const response = await fetch(`${API_BASE_URL}/api/v1/latest_blueprint`);
                 const data = await response.json();
 
                 if (data.status === 'available' && data.data) {
@@ -46,7 +47,7 @@ export default function RollbackModal({ currentRepo }) {
     const handleDiscard = async () => {
         setIsDiscarding(true);
         try {
-            const response = await fetch('http://localhost:8000/api/v1/discard_blueprint', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/discard_blueprint`, {
                 method: 'POST'
             });
             if (response.ok) {
@@ -64,7 +65,7 @@ export default function RollbackModal({ currentRepo }) {
     const handleDeploy = async () => {
         setIsDeploying(true);
         try {
-            const response = await fetch('http://localhost:8000/api/v1/deploy_rollback', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/deploy_rollback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(blueprint)

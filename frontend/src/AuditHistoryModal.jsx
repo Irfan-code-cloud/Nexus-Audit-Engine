@@ -7,6 +7,7 @@ export default function AuditHistoryModal({ isOpen, onClose }) {
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmDelete, setShowConfirmDelete] = useState(false);
     const [expandedRecord, setExpandedRecord] = useState(null);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
     useEffect(() => {
         if (isOpen) {
@@ -19,7 +20,7 @@ export default function AuditHistoryModal({ isOpen, onClose }) {
     const fetchHistory = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/audit_history');
+            const response = await fetch(`${API_BASE_URL}/api/v1/audit_history`);
             const data = await response.json();
             if (data.status === 'success') {
                 setHistory(data.data);
@@ -33,7 +34,7 @@ export default function AuditHistoryModal({ isOpen, onClose }) {
 
     const handleDeleteHistory = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/audit_history', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/audit_history`, {
                 method: 'DELETE'
             });
             if (response.ok) {
