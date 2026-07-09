@@ -231,6 +231,8 @@ The backend is strictly containerized using the included `Dockerfile`.
 * **Why Docker?** Machine learning dependencies and vector databases (like FAISS) are highly sensitive to operating system environments. By utilizing a Linux-based Docker container, we completely eliminate the "it works on my machine" problem. 
 * **How it works:** The `Dockerfile` pulls a verified Python 3.11 image, installs exact OS-level dependencies, installs the isolated Python packages via `requirements_linux.txt`, and securely exposes the application to Google Cloud Run via dynamic port mapping.
 
+---
+
 ### ENGINEER
 
 **Engineered by Irfan Khattak - AI Orchestration Engineer** 
