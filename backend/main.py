@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any
 from agents.pr_agent import create_draft_pr
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception
 
 from groq import Groq
 from dotenv import load_dotenv
@@ -24,6 +25,33 @@ from langchain_community.vectorstores import FAISS
 # 1. LOAD THE VAULT
 load_dotenv()
 client = Groq()
+
+
+# --- RATE LIMIT DEFENDER ---
+def is_rate_limit_error(exception):
+    error_str = str(exception).lower()
+    return (
+        "429" in error_str
+        or "rate limit" in error_str
+        or "too many requests" in error_str
+    )
+
+
+@retry(
+    wait=wait_exponential(multiplier=2, min=5, max=60),
+    stop=stop_after_attempt(6),
+    retry=retry_if_exception(is_rate_limit_error),
+    reraise=True,
+)
+def execute_audit_safely(messages_payload):
+    print("🤖 Sending payload to Groq... (Will auto-retry if rate limited)")
+    return client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=messages_payload,
+        response_format={"type": "json_object"},
+        max_tokens=6000,
+    )
+
 
 # Import the new router
 from routers.github_webhooks import router as webhooks_router
@@ -280,11 +308,9 @@ def run_deep_audit():
     # print("-------------------------------------------\n")
 
     try:
-        architect_res = client.chat.completions.create(
-            messages=[{"role": "user", "content": architect_prompt}],
-            model="openai/gpt-oss-120b",  # Consider swapping this to "llama3-8b-8192" temporarily
-            response_format={"type": "json_object"},
-            max_tokens=6000,
+        # Use the safe wrapper here
+        architect_res = execute_audit_safely(
+            [{"role": "user", "content": architect_prompt}]
         )
         architect_draft = architect_res.choices[0].message.content
         print("✅ Architect drafted initial blueprints.")
@@ -345,19 +371,10 @@ def run_deep_audit():
     ARCHITECT DRAFT:
     {architect_draft}
     """
-    qa_res = client.chat.completions.create(
-        messages=[{"role": "user", "content": qa_prompt}],
-        model="openai/gpt-oss-120b",
-        response_format={"type": "json_object"},
-        max_tokens=6000,
-    )
 
     try:
-        qa_res = client.chat.completions.create(
-            messages=[{"role": "user", "content": qa_prompt}],
-            model="openai/gpt-oss-120b",
-            response_format={"type": "json_object"},
-        )
+        # Use the safe wrapper here too!
+        qa_res = execute_audit_safely([{"role": "user", "content": qa_prompt}])
 
         final_contracts = json.loads(qa_res.choices[0].message.content)
         print("✅ QA Agent enforced code generation and verified the payload.")
