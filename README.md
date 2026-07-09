@@ -213,6 +213,24 @@ npm run dev
 *   **Vectorized Context**: The use of FAISS ensures that the LLM has "read" the entire codebase contextually, enabling accurate bug detection across complex directory structures.
 *   **Safety Loops**: The QA Agent acts as a final "VETO" authority to prevent AI hallucinations from breaking the build.
 
+## ☁️ Cloud Deployment Architecture
+
+The Nexus Audit Engine operates on a decoupled, microservice architecture to ensure maximum scalability and performance. 
+
+### 1. Frontend: Vercel (The Command Center)
+The React/Vite dashboard is deployed on **Vercel**. 
+* **Why Vercel?** Vercel provides out-of-the-box global Edge Network distribution, instantly serving the static UI assets to users with near-zero latency. By decoupling the UI from the backend, the React application remains ultra-responsive and doesn't consume the expensive compute resources required by the AI agents. 
+* **Integration:** The frontend communicates securely with the cloud backend via injected environment variables (`VITE_API_BASE_URL`).
+
+### 2. Backend: Google Cloud Run (The AI Brain)
+The FastAPI AI orchestration layer is deployed as a serverless container on **Google Cloud Run**.
+* **Why Google Cloud?** The backend requires heavy lifting: parsing Abstract Syntax Trees, querying FAISS vector databases, and managing long-running LLM generation streams. Google Cloud Run provides secure secret management (for Groq and GitHub keys) and auto-scales compute resources seamlessly when multiple webhooks or audit requests arrive simultaneously.
+
+### 3. Containerization (Docker)
+The backend is strictly containerized using the included `Dockerfile`.
+* **Why Docker?** Machine learning dependencies and vector databases (like FAISS) are highly sensitive to operating system environments. By utilizing a Linux-based Docker container, we completely eliminate the "it works on my machine" problem. 
+* **How it works:** The `Dockerfile` pulls a verified Python 3.11 image, installs exact OS-level dependencies, installs the isolated Python packages via `requirements_linux.txt`, and securely exposes the application to Google Cloud Run via dynamic port mapping.
+
 ### ENGINEER
 
 **Engineered by Irfan Khattak - AI Orchestration Engineer** 
