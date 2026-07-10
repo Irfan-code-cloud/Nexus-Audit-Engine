@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertTriangle, Eye, X, ShieldAlert, Terminal, Wrench, CheckCircle2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { db } from "./firebase";
 
 export default function RollbackModal({ currentRepo }) {
     const [blueprint, setBlueprint] = useState(null);
@@ -11,20 +13,24 @@ export default function RollbackModal({ currentRepo }) {
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
     useEffect(() => {
-        const checkVault = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/latest_blueprint`);
-                const data = await response.json();
+        // 1. Establish a real-time, bidirectional WebSocket listener to the Firestore doc
+        const docRef = doc(db, "nexus_state", "latest_blueprint");
 
-                if (data.status === 'available' && data.data) {
-                    const backendRepo = data.data.repo_name.toLowerCase();
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+
+                // Only act if the database state flag is marked as 'pending'
+                if (data.status === 'pending') {
+                    const backendRepo = (data.repo_name || "").toLowerCase();
                     const activeRepo = (currentRepo || "")
                         .replace("https://github.com/", "")
                         .replace(".git", "")
                         .toLowerCase();
 
+                    // Domain cross-examination check
                     if (backendRepo === activeRepo) {
-                        setBlueprint(data.data);
+                        setBlueprint(data);
                         if (!isOpen) {
                             setIsOpen(true);
                             setIsExpanded(false);
@@ -33,30 +39,32 @@ export default function RollbackModal({ currentRepo }) {
                         setIsOpen(false);
                     }
                 } else {
+                    // If backend updates status to 'discarded' or 'deployed', close modal instantly
                     setIsOpen(false);
                 }
-            } catch (error) {
-                console.error("Nexus Engine Offline", error);
+            } else {
+                setIsOpen(false);
             }
-        };
+        }, (error) => {
+            console.error("🔥 Firestore real-time listener synchronization interrupted:", error);
+        });
 
-        const interval = setInterval(checkVault, 5000);
-        return () => clearInterval(interval);
-    }, [isOpen, currentRepo]);
+        // Safe unmount context cleanup
+        return () => unsubscribe();
+    }, [currentRepo]);
 
     const handleDiscard = async () => {
         setIsDiscarding(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/discard_blueprint`, {
-                method: 'POST'
-            });
-            if (response.ok) {
-                setIsOpen(false);
-                setBlueprint(null);
-                setIsExpanded(false);
-            }
+            // 2. Instead of a slow network POST, mutate state directly inside Firestore
+            const docRef = doc(db, "nexus_state", "latest_blueprint");
+            await updateDoc(docRef, { status: "discarded" });
+
+            setIsOpen(false);
+            setBlueprint(null);
+            setIsExpanded(false);
         } catch (error) {
-            console.error("Failed to discard", error);
+            console.error("❌ Firebase state mutation failed on discard:", error);
         } finally {
             setIsDiscarding(false);
         }
@@ -65,6 +73,7 @@ export default function RollbackModal({ currentRepo }) {
     const handleDeploy = async () => {
         setIsDeploying(true);
         try {
+            // 3. Keep your robust local deployment router call
             const response = await fetch(`${API_BASE_URL}/api/v1/deploy_rollback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -72,14 +81,18 @@ export default function RollbackModal({ currentRepo }) {
             });
 
             if (response.ok) {
+                // Mutate status to deployed so all open dashboards close down instantly
+                const docRef = doc(db, "nexus_state", "latest_blueprint");
+                await updateDoc(docRef, { status: "deployed" });
+
                 setIsOpen(false);
                 setBlueprint(null);
                 setIsExpanded(false);
             } else {
-                console.error("Failed to deploy rollback.");
+                console.error("❌ Rollback deployment protocol rejected by backend service execution layer.");
             }
         } catch (error) {
-            console.error("Network error during deployment", error);
+            console.error("❌ Cloud deployment network layer threw critical execution fault:", error);
         } finally {
             setIsDeploying(false);
         }

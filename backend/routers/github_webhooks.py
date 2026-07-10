@@ -8,6 +8,8 @@ import httpx
 import json
 import re
 from fastapi import APIRouter, Request, HTTPException, Header
+from firebase_client import db
+from firebase_admin import firestore
 from groq import AsyncGroq
 from dotenv import load_dotenv
 
@@ -157,17 +159,20 @@ async def execute_self_healing_loop(
             f"✅ DEVOPS ADVISORY DRAFTED FOR: {advisory.get('target_component')}"
         )
 
-        # --- VAULT THE ADVISORY ---
-        import main
-
-        main.system_status["latest_blueprint"] = {
+        # --- VAULT THE ADVISORY (FIRESTORE) ---
+        blueprint_payload = {
             "repo_name": repo_name,
             "pr_number": pr_number,
             "head_branch": head_branch,
-            "type": "advisory",  # Identifies this as an advisory, not an auto-patch
+            "type": "advisory",
             "blueprint": v2_blueprint,
+            "status": "pending",
+            "timestamp": firestore.SERVER_TIMESTAMP,
         }
-        logger.info("🔒 Advisory vaulted in system memory. Awaiting UI deployment.")
+
+        # Write to the 'nexus_state' collection, into a document named 'latest_blueprint'
+        db.collection("nexus_state").document("latest_blueprint").set(blueprint_payload)
+        logger.info("🔥 Advisory vaulted in FIRESTORE memory. Pushing to UI.")
 
     except Exception as e:
         logger.error(f"⚠️ Diagnostic Loop failed to parse V2 JSON: {e}")
