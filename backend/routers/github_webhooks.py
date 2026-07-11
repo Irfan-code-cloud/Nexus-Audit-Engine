@@ -7,7 +7,7 @@ import logging
 import httpx
 import json
 import re
-from fastapi import APIRouter, Request, HTTPException, Header
+from fastapi import APIRouter, Request, HTTPException, Header, BackgroundTasks
 from firebase_client import db
 from firebase_admin import firestore
 from groq import AsyncGroq
@@ -251,11 +251,32 @@ async def fetch_github_action_logs(repo_name: str, run_id: str) -> str:
         return full_logs[-8000:]
 
 
+async def process_diagnostic_workflow(
+    repo_name: str, pr_number, run_id: str, head_branch: str
+):
+    """Background task to handle heavy AI processing without blocking the webhook."""
+    logger.info(f"⚙️ BACKGROUND TASK STARTED for {repo_name} PR #{pr_number}")
+
+    # 1. Fetch the logs
+    error_logs = await fetch_github_action_logs(repo_name, run_id)
+    logger.info(f"LOGS RETRIEVED: {len(error_logs)} characters extracted.")
+
+    # 2. Engage Rollback if a PR exists
+    if pr_number:
+        await execute_rollback_protocol(repo_name, pr_number)
+
+    # 3. Engage AI Healing Loop (Writes to Firestore)
+    await execute_self_healing_loop(
+        repo_name, pr_number or "N/A", error_logs, head_branch
+    )
+
+
 @router.post("/api/webhooks/github")
 async def github_webhook_interceptor(
     request: Request,
+    background_tasks: BackgroundTasks,  # <-- NEW: Inject the background task manager
     x_hub_signature_256: str = Header(None),
-    x_github_event: str = Header(None),  # This header tells us the type of event
+    x_github_event: str = Header(None),
 ):
     payload_body = await request.body()
     if not verify_github_signature(payload_body, x_hub_signature_256):
@@ -263,12 +284,8 @@ async def github_webhook_interceptor(
 
     payload = await request.json()
 
-    # --- DEBUG LOGS ---
     logger.info(f"DEBUG: Received Event: {x_github_event}")
-    logger.info(f"DEBUG: Payload content: {list(payload.keys())}")
-    # ------------------
 
-    # GitHub Actions often sends 'workflow_run' for pipeline failures
     if x_github_event == "workflow_run":
         action = payload.get("action")
         workflow_run = payload.get("workflow_run", {})
@@ -277,24 +294,17 @@ async def github_webhook_interceptor(
             repo_name = payload.get("repository", {}).get("full_name")
             run_id = str(workflow_run.get("id"))
 
-            # 1. Attempt to get PR number, but don't crash if it's empty
             pull_requests = workflow_run.get("pull_requests", [])
             pr_number = pull_requests[0].get("number") if pull_requests else None
             head_branch = workflow_run.get("head_branch", "main")
 
-            # 2. ALWAYS FETCH LOGS, even if PR is None
-            error_logs = await fetch_github_action_logs(repo_name, run_id)
-            logger.info(f"LOGS RETRIEVED: {len(error_logs)} characters extracted.")
-
-            # 3. If we have a PR, engage the rollback
-            if pr_number:
-                await execute_rollback_protocol(repo_name, pr_number)
-
-            # 4. Always engage the self-healing loop
-            await execute_self_healing_loop(
-                repo_name, pr_number or "N/A", error_logs, head_branch
+            # --- THE FIX ---
+            # Hand the heavy lifting off to the background task instantly
+            background_tasks.add_task(
+                process_diagnostic_workflow, repo_name, pr_number, run_id, head_branch
             )
 
-            return {"status": "Rollback and Healing initiated."}
+            # Instantly return 200 OK so Google Cloud Run doesn't kill the container!
+            return {"status": "Accepted: Processing in background."}
 
     return {"status": "Event ignored."}
