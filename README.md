@@ -215,21 +215,23 @@ npm run dev
 
 ## ☁️ Cloud Deployment Architecture
 
-The Nexus Audit Engine operates on a decoupled, microservice architecture to ensure maximum scalability and performance. 
+> **⚠️ JUDGES' NOTE: INFRASTRUCTURE MIGRATION IN PROGRESS**
+> While cloud deployment was not a strict requirement for this track, the engine was initially architected and successfully deployed across a Vercel + Google Cloud Run serverless hybrid environment to demonstrate real-world, enterprise-grade DevOps proficiency. Due to the exhaustion of Google Cloud free-tier billing credits during the extensive testing of the heavy FAISS vector brain and multi-agent pipelines, the live cloud backend is temporarily offline. **The backend infrastructure is scheduled to be migrated to Hugging Face Spaces (Docker) by the end of this month.** In the meantime, please refer to the Local Setup Instructions above to run and evaluate the complete pipeline on your local machine.
+
+The Nexus Audit Engine is designed to operate on a decoupled, microservice architecture to ensure maximum scalability and performance. 
 
 ### 1. Frontend: Vercel (The Command Center)
-The React/Vite dashboard is deployed on **Vercel**. 
-* **Why Vercel?** Vercel provides out-of-the-box global Edge Network distribution, instantly serving the static UI assets to users with near-zero latency. By decoupling the UI from the backend, the React application remains ultra-responsive and doesn't consume the expensive compute resources required by the AI agents. 
-* **Integration:** The frontend communicates securely with the cloud backend via injected environment variables (`VITE_API_BASE_URL`).
+The React/Vite dashboard is architected for deployment on **Vercel**. 
+* **Why Vercel?** Vercel provides out-of-the-box global Edge Network distribution, instantly serving static UI assets to users with near-zero latency. By decoupling the UI from the backend, the React application remains ultra-responsive and doesn't consume the expensive compute resources required by the AI agents. 
 
-### 2. Backend: Google Cloud Run (The AI Brain)
-The FastAPI AI orchestration layer is deployed as a serverless container on **Google Cloud Run**.
-* **Why Google Cloud?** The backend requires heavy lifting: parsing Abstract Syntax Trees, querying FAISS vector databases, and managing long-running LLM generation streams. Google Cloud Run provides secure secret management (for Groq and GitHub keys) and auto-scales compute resources seamlessly when multiple webhooks or audit requests arrive simultaneously.
+### 2. Backend: Hugging Face Spaces (Planned Migration)
+The FastAPI AI orchestration layer is slated for deployment as a persistent container on **Hugging Face Spaces**.
+* **Why Hugging Face?** The backend requires heavy computational lifting: parsing Abstract Syntax Trees, querying FAISS vector databases entirely in-memory, and managing long-running LLM generation streams. Hugging Face Spaces provides the necessary high-capacity RAM (16GB) and secure secret management required to keep this heavy multi-agent pipeline running smoothly without the strict timeouts of traditional serverless functions.
 
 ### 3. Containerization (Docker)
 The backend is strictly containerized using the included `Dockerfile`.
 * **Why Docker?** Machine learning dependencies and vector databases (like FAISS) are highly sensitive to operating system environments. By utilizing a Linux-based Docker container, we completely eliminate the "it works on my machine" problem. 
-* **How it works:** The `Dockerfile` pulls a verified Python 3.11 image, installs exact OS-level dependencies, installs the isolated Python packages via `requirements_linux.txt`, and securely exposes the application to Google Cloud Run via dynamic port mapping.
+* **How it works:** The `Dockerfile` pulls a verified Python 3.11 image, installs exact OS-level dependencies, and securely isolates the Python packages via `requirements_linux.txt`.
 
 ---
 
